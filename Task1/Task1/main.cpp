@@ -1,85 +1,95 @@
-#include<iostream>
-#include<vector>
-#include<string>
-#include<sstream>
-#include<map>
+#include <string>
+#include <vector>
+#include <map>
+#include <sstream>
+#include <iostream>
 
-using namespace std;
+class SqlSelectQueryBuilder {
+    std::vector<std::string> columns;
+    std::string from_table;
+    std::vector<std::string> where_conditions;
 
-class SqlSelectQueryBilder 
-{
-private:
-	vector<string> colums;
-	string from_table;
-	map<string, string>where_condition;
 public:
-	SqlSelectQueryBilder& AddColumns(const string& column) 
-	{
-		colums.push_back(column);
-		return *this;
-	}
-	SqlSelectQueryBilder& AddColums(const vector<string>&cols)noexcept 
-	{
-		colums.insert(colums.end(), cols.begin(),cols.end());
-		return *this;
-	
-	}
-	SqlSelectQueryBilder& AddFrom(const string& table) {
-		from_table = table;
-		return *this;
-	}
-	SqlSelectQueryBilder& AddWhere(const string& column, const string& value) 
-	{
-		where_condition[column] = value;
-		return *this;
-	}
+    
+    SqlSelectQueryBuilder& AddColumns(const std::string& column) {
+        columns.push_back(column);
+        return *this;
+    }
 
-	SqlSelectQueryBilder& AddWhere(const map<string, string>& kv)noexcept 
-	{
-		where_condition.insert(kv.begin(), kv.end());
-		return *this;
-	}
+    
+    SqlSelectQueryBuilder& AddColumns(const std::vector<std::string>& cols) noexcept {
+        columns.insert(columns.end(), cols.begin(), cols.end());
+        return *this;
+    }
 
-	string BuildQuery()const {
-		ostringstream query;
-		query << "SELECT";
-		if (colums.empty()) {
-			query << "*";	
-		}
-		else {
-			for (size_t i = 0; i < colums.size(); ++i) {
-				query<< colums[i];
-				if (i < colums.size() - 1) query << ", ";
-			}
-		}
-		query << " FROM " << from_table<<endl;
+    
+    SqlSelectQueryBuilder& AddFrom(const std::string& table) {
+        from_table = table;  
+        return *this;
+    }
 
-		if (!where_condition.empty()) {
-			query << "WHERE";
-			bool first = true;
-			for (const auto& condition : where_condition) {
-			
-				query << condition.first << " = " << condition.second;
-				first = false;
-			}
-		}
-		query << "; "<<endl;
-		return query.str();
-	}
+  
+    SqlSelectQueryBuilder& AddWhere(const std::string& key, const std::string& value) {
+        where_conditions.push_back(key + "=" + value);
+        return *this;
+    }
 
+   
+    SqlSelectQueryBuilder& AddWhere(const std::map<std::string, std::string>& kv) noexcept {
+        for (const auto& [key, value] : kv) {
+            where_conditions.push_back(key + "=" + value);
+        }
+        return *this;
+    }
+
+    std::string BuildQuery() const {
+        std::ostringstream query;
+
+        query << "SELECT ";
+        if (columns.empty()) {
+            query << "*";
+        }
+        else {
+            for (size_t i = 0; i < columns.size(); ++i) {
+                query << columns[i];
+                if (i < columns.size() - 1) query << ", ";
+            }
+        }
+
+        query << " FROM " << from_table;  
+
+        if (!where_conditions.empty()) {
+            query << " WHERE ";
+            for (size_t i = 0; i < where_conditions.size(); ++i) {
+                query << where_conditions[i];
+                if (i < where_conditions.size() - 1) query << " AND ";
+            }
+        }
+
+        query << ";";
+        return query.str();
+    }
 };
 
+int main() {
+   
+    SqlSelectQueryBuilder query_builder;
 
-int main() 
-{
-	SqlSelectQueryBilder query_builder;
+    
+    query_builder.AddColumns(std::vector<std::string>{"name", "phone"});
 
-	query_builder.AddColumns(" name ").AddColumns(" phone ").AddColumns("email");
-	query_builder.AddFrom(" students ");
-	query_builder.AddWhere(" id ", " 42 ").AddWhere(" name ", " John ").AddWhere("age","21");
-
-	cout << query_builder.BuildQuery() << endl;
+   
+    query_builder.AddFrom("students");
 
 
-	return 0;
+    query_builder.AddWhere("id", "42").AddWhere("name", "John");
+
+
+    std::cout << query_builder.BuildQuery() << std::endl;
+
+    
+    query_builder.AddFrom("teachers");
+    std::cout << query_builder.BuildQuery() << std::endl;
+
+    return 0;
 }
